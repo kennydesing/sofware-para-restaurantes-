@@ -226,7 +226,7 @@ function renderizarFilaEditableHTML(ins = {}) {
   const nombre = ins.nombre || '';
   const presentacionNombre = ins.presentacion_nombre || '';
   const basePorPresentacion = ins.cantidad_base_por_presentacion || 1;
-  const unidadesPorEmpaque = ins.unidades_por_empaque || 1;
+  const unidadesPorEmpaque = ins.unidades_por_empaque || (ins.id === 'nuevo' ? 0 : 1);
   const contenidoMl = ins.contenido_ml_por_unidad || 0;
   const esEmpaqueCompuestoEditable = unidadesPorEmpaque > 1 && contenidoMl > 0;
 
@@ -234,7 +234,7 @@ function renderizarFilaEditableHTML(ins = {}) {
   const pesoHumano = convertirAUnidadHumana(basePorPresentacion, unidadBase);
   const stockMinimoEnUnidades = esEmpaqueCompuestoEditable ? stockMinimo / contenidoMl : stockMinimo;
   // En edición inline, el campo inferior muestra las UNIDADES TOTALES físicas (ej: 2 cajas × 36 = 72 botellas).
-  const unidadesTotalesInicial = esEmpaqueCompuestoEditable ? Math.round(cantidadPres * unidadesPorEmpaque) : unidadesPorEmpaque;
+  const unidadesTotalesInicial = esEmpaqueCompuestoEditable ? Math.round(cantidadPres * unidadesPorEmpaque) : (unidadesPorEmpaque > 1 ? unidadesPorEmpaque : 0);
   const totalBaseCalculado = esEmpaqueCompuestoEditable ? unidadesTotalesInicial * contenidoMl : basePorPresentacion;
 
   const costoBs = costo * tasa;
@@ -269,7 +269,7 @@ function renderizarFilaEditableHTML(ins = {}) {
       </div>
       <div class="empaque-config-inline" style="margin-top:4px;">
         <div class="input-triple">
-          <input type="number" step="1" min="1" class="form-control input-unidades-empaque" data-empaque="unidades_por_empaque" data-unidades-por-caja="${unidadesPorEmpaque}" value="${unidadesTotalesInicial > 0 ? unidadesTotalesInicial : ''}" placeholder="unidades totales" title="Unidades totales físicas a registrar (ej: 72 para 2 cajas de 36 botellas). Se recalcula automáticamente al cambiar la cantidad de cajas." />
+          <input type="number" step="1" min="1" class="form-control input-unidades-empaque" data-empaque="unidades_por_empaque" data-unidades-por-caja="${unidadesPorEmpaque > 1 ? unidadesPorEmpaque : ''}" value="${unidadesTotalesInicial > 0 ? unidadesTotalesInicial : ''}" placeholder="unidades totales" title="Unidades totales físicas a registrar (ej: 72 para 2 cajas de 36 botellas). Se recalcula automáticamente al cambiar la cantidad de cajas." />
           <input type="number" step="0.1" min="0" class="form-control input-contenido-ml" data-empaque="contenido_ml" value="${contenidoMl > 0 ? contenidoMl : ''}" placeholder="ml/unidad" title="ml por unidad (ej: 222 ml por botella)" />
           <label class="check-retornable" title="Envase retornable">
             <input type="checkbox" data-empaque="es_retornable" ${ins.es_retornable ? 'checked' : ''} /> ♻️
@@ -320,13 +320,18 @@ function activarListenersEdicionInline(fila, esNueva) {
   });
 
   // Recalcular total base y hint para empaques compuestos
+  const nombreInput = fila.querySelector('[data-field="nombre"] input');
   const cantidadInput = fila.querySelector('[data-field="cantidad_presentacion"] input.input-cantidad-empaque');
+  const presentacionInput = fila.querySelector('[data-field="cantidad_presentacion"] input.input-presentacion');
   const unidadesInput = fila.querySelector('.input-unidades-empaque');
   const contenidoInput = fila.querySelector('.input-contenido-ml');
   const totalBaseInput = fila.querySelector('.input-total-base');
   const hintEl = fila.querySelector('.empaque-hint');
   const desgloseCantidadEl = fila.querySelector('.cantidad-desglose-live');
-  const presentacionInput = fila.querySelector('[data-field="cantidad_presentacion"] input.input-presentacion');
+  const retornableInput = fila.querySelector('[data-empaque="es_retornable"]');
+  const stockMinimoCell = fila.querySelector('[data-field="stock_minimo"]');
+  const stockMinimoTag = stockMinimoCell ? stockMinimoCell.querySelector('.unidad-tag') : null;
+  const presentacionCell = fila.querySelector('[data-field="presentacion_medida"]');
 
   function getUnidadesPorCaja() {
     return parseInt(unidadesInput?.getAttribute('data-unidades-por-caja')) || 0;
@@ -346,91 +351,174 @@ function activarListenersEdicionInline(fila, esNueva) {
     return parseFloat(str.replace(/\./g, '').replace(',', '.')) || 0;
   }
 
+  function esBebidaCerveza(texto) {
+    if (!texto) return false;
+    return /cerveza|polar|solera|zulia|regional|pilsen|tercio|corona|heineken/i.test(texto);
+  }
+
+  // Sincroniza y formatea la vista cuando se trata de un empaque compuesto
+  function sincronizarEmpaqueCompuesto(unidadesPorCaja, contenido, forzarUnidadesTotales) {
+    if (!cantidadInput || !unidadesInput || !contenidoInput || !totalBaseInput) return;
+    const cantidad = parseFloat(cantidadInput.value) || 0;
+    const presentacion = presentacionInput?.value?.trim() || 'caja';
+
+    setUnidadesPorCaja(unidadesPorCaja);
+
+    // Calcular unidades totales físicas según cantidad de cajas
+    const totalUnidades = (forzarUnidadesTotales !== undefined && forzarUnidadesTotales > 0)
+      ? forzarUnidadesTotales
+      : Math.round(cantidad * unidadesPorCaja);
+
+    if (totalUnidades > 0) {
+      unidadesInput.value = totalUnidades;
+    } else if (unidadesPorCaja > 0 && !unidadesInput.value) {
+      unidadesInput.value = unidadesPorCaja;
+    }
+
+    const totalBase = (totalUnidades > 0 ? totalUnidades : unidadesPorCaja) * contenido;
+    totalBaseInput.value = totalBase > 0 ? totalBase.toLocaleString('es-VE', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : '';
+    totalBaseInput.setAttribute('readonly', 'readonly');
+    if (pesoSelect) {
+      pesoSelect.value = 'ml';
+      pesoSelect.setAttribute('disabled', 'disabled');
+    }
+
+    fila.querySelectorAll('[data-unidad-base]').forEach(el => el.setAttribute('data-unidad-base', 'ml'));
+    if (stockMinimoTag) stockMinimoTag.textContent = 'unid.';
+    if (stockMinimoCell) stockMinimoCell.setAttribute('data-es-empaque-compuesto', '1');
+    if (presentacionCell) presentacionCell.setAttribute('data-es-empaque-compuesto', '1');
+
+    if (desgloseCantidadEl) {
+      desgloseCantidadEl.textContent = totalUnidades > 0 ? `(${totalUnidades} unidades)` : '';
+    }
+
+    if (hintEl) {
+      hintEl.textContent = `${cantidad.toLocaleString('es-VE', { minimumFractionDigits: 0, maximumFractionDigits: cantidad % 1 === 0 ? 0 : 2 })} ${presentacion} × ${unidadesPorCaja} unid./caja = ${totalUnidades} unidades (${totalBase.toLocaleString('es-VE', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ml)`;
+    }
+  }
+
+  function desmarcarEmpaqueCompuesto() {
+    totalBaseInput.removeAttribute('readonly');
+    if (pesoSelect) pesoSelect.removeAttribute('disabled');
+    if (desgloseCantidadEl) desgloseCantidadEl.textContent = '';
+    if (hintEl) hintEl.textContent = 'Configure unidades totales × ml/unidad si aplica';
+    if (stockMinimoCell) stockMinimoCell.setAttribute('data-es-empaque-compuesto', '0');
+    if (presentacionCell) presentacionCell.setAttribute('data-es-empaque-compuesto', '0');
+    if (stockMinimoTag) {
+      const u = pesoSelect ? pesoSelect.value : 'u';
+      stockMinimoTag.textContent = u;
+    }
+  }
+
   function recalcularDesdeCantidad() {
     if (!cantidadInput || !unidadesInput || !contenidoInput || !totalBaseInput) return;
     const cantidad = parseFloat(cantidadInput.value) || 0;
     const contenido = parseLocaleFloat(contenidoInput.value) || 0;
-    const presentacion = presentacionInput?.value?.trim() || 'caja';
     let unidadesPorCaja = getUnidadesPorCaja();
 
-    // Si aún no tenemos unidades por caja registradas y el input tiene un valor, obtenerlo
+    // Si aún no tenemos unidades por caja registradas, intentar inferir del input o del nombre
     if (unidadesPorCaja <= 0) {
       const valInput = parseLocaleInt(unidadesInput.value) || 0;
       if (valInput > 0) {
-        unidadesPorCaja = cantidad > 0 ? Math.round(valInput / cantidad) : valInput;
-        setUnidadesPorCaja(unidadesPorCaja);
+        if (cantidad > 1 && valInput % cantidad === 0 && valInput > cantidad) {
+          unidadesPorCaja = Math.round(valInput / cantidad);
+        } else {
+          unidadesPorCaja = valInput;
+        }
+      } else if (esBebidaCerveza(nombreInput?.value)) {
+        unidadesPorCaja = 36;
       }
     }
 
     if (unidadesPorCaja > 1 && contenido > 0) {
-      // Recalcular unidades totales automáticamente según la cantidad de cajas
-      const totalUnidades = Math.round(cantidad * unidadesPorCaja);
-      unidadesInput.value = totalUnidades > 0 ? totalUnidades : '';
-
-      const totalBase = totalUnidades * contenido;
-      totalBaseInput.value = totalBase > 0 ? totalBase.toLocaleString('es-VE', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : '';
-      totalBaseInput.setAttribute('readonly', 'readonly');
-      if (pesoSelect) {
-        pesoSelect.value = 'ml';
-        pesoSelect.setAttribute('disabled', 'disabled');
-      }
-      fila.querySelectorAll('[data-unidad-base]').forEach(el => el.setAttribute('data-unidad-base', 'ml'));
-
-      if (desgloseCantidadEl) {
-        desgloseCantidadEl.textContent = totalUnidades > 0 ? `(${totalUnidades} unidades)` : '';
-      }
-
-      if (hintEl) {
-        hintEl.textContent = `${cantidad.toLocaleString('es-VE', { minimumFractionDigits: 0, maximumFractionDigits: cantidad % 1 === 0 ? 0 : 2 })} ${presentacion} × ${unidadesPorCaja} unid./caja = ${totalUnidades} unidades (${totalBase.toLocaleString('es-VE', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ml)`;
-      }
+      sincronizarEmpaqueCompuesto(unidadesPorCaja, contenido);
     }
   }
 
   function recalcularDesdeUnidades() {
     if (!cantidadInput || !unidadesInput || !contenidoInput || !totalBaseInput) return;
-    const totalUnidades = parseLocaleInt(unidadesInput.value) || 0;
+    const inputVal = parseLocaleInt(unidadesInput.value) || 0;
     const contenido = parseLocaleFloat(contenidoInput.value) || 0;
-    const presentacion = presentacionInput?.value?.trim() || 'caja';
+    const cantidadActual = parseFloat(cantidadInput.value) || 0;
     let unidadesPorCaja = getUnidadesPorCaja();
 
-    if (unidadesPorCaja <= 0 && totalUnidades > 0) {
-      const cantActual = parseFloat(cantidadInput.value) || 1;
-      unidadesPorCaja = Math.round(totalUnidades / cantActual);
-      if (unidadesPorCaja <= 0) unidadesPorCaja = totalUnidades;
-      setUnidadesPorCaja(unidadesPorCaja);
+    if (inputVal <= 0 && contenido <= 0) {
+      setUnidadesPorCaja(0);
+      desmarcarEmpaqueCompuesto();
+      return;
+    }
+
+    // Inferir unidadesPorCaja vs totalUnidades:
+    if (cantidadActual > 1) {
+      if (inputVal % cantidadActual === 0 && inputVal > cantidadActual) {
+        unidadesPorCaja = Math.round(inputVal / cantidadActual);
+      } else if ([36, 24, 12, 6, 48, 10, 20].includes(inputVal)) {
+        unidadesPorCaja = inputVal;
+      } else if (unidadesPorCaja > 1) {
+        const nuevaCantidad = inputVal / unidadesPorCaja;
+        if (nuevaCantidad > 0) {
+          cantidadInput.value = nuevaCantidad % 1 === 0 ? nuevaCantidad.toFixed(0) : nuevaCantidad.toFixed(2);
+        }
+      } else {
+        unidadesPorCaja = inputVal;
+      }
+    } else {
+      unidadesPorCaja = inputVal > 0 ? inputVal : (esBebidaCerveza(nombreInput?.value) ? 36 : 0);
     }
 
     if (unidadesPorCaja > 1 && contenido > 0) {
-      // Recalcular cantidad de cajas según las unidades totales ingresadas
-      const nuevaCantidad = unidadesPorCaja > 0 ? (totalUnidades / unidadesPorCaja) : 0;
-      if (nuevaCantidad > 0) {
-        cantidadInput.value = nuevaCantidad % 1 === 0 ? nuevaCantidad.toFixed(0) : nuevaCantidad.toFixed(2);
-      }
-
-      const totalBase = totalUnidades * contenido;
-      totalBaseInput.value = totalBase > 0 ? totalBase.toLocaleString('es-VE', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : '';
-      totalBaseInput.setAttribute('readonly', 'readonly');
-      if (pesoSelect) {
-        pesoSelect.value = 'ml';
-        pesoSelect.setAttribute('disabled', 'disabled');
-      }
-      fila.querySelectorAll('[data-unidad-base]').forEach(el => el.setAttribute('data-unidad-base', 'ml'));
-
-      if (desgloseCantidadEl) {
-        desgloseCantidadEl.textContent = totalUnidades > 0 ? `(${totalUnidades} unidades)` : '';
-      }
-
-      if (hintEl) {
-        hintEl.textContent = `${nuevaCantidad.toLocaleString('es-VE', { minimumFractionDigits: 0, maximumFractionDigits: nuevaCantidad % 1 === 0 ? 0 : 2 })} ${presentacion} × ${unidadesPorCaja} unid./caja = ${totalUnidades} unidades (${totalBase.toLocaleString('es-VE', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ml)`;
-      }
-    } else if (totalUnidades <= 0 || contenido <= 0) {
-      totalBaseInput.removeAttribute('readonly');
-      if (pesoSelect) pesoSelect.removeAttribute('disabled');
-      if (desgloseCantidadEl) desgloseCantidadEl.textContent = '';
-      if (hintEl) hintEl.textContent = 'Configure unidades totales × ml/unidad si aplica';
+      sincronizarEmpaqueCompuesto(unidadesPorCaja, contenido);
+    } else if (unidadesPorCaja > 1 && contenido <= 0 && esBebidaCerveza(nombreInput?.value)) {
+      contenidoInput.value = 222;
+      sincronizarEmpaqueCompuesto(unidadesPorCaja, 222);
     }
   }
 
+  function recalcularDesdeTotalBase() {
+    if (!totalBaseInput || !contenidoInput || !unidadesInput) return;
+    const totalBase = parseLocaleFloat(totalBaseInput.value) || 0;
+    const contenido = parseLocaleFloat(contenidoInput.value) || 0;
+    const cantidad = parseFloat(cantidadInput?.value) || 1;
+
+    // Si el usuario ingresa 7992 en ml y contenido es 222:
+    if (totalBase > 0 && contenido > 0) {
+      const unidadesInferidas = Math.round(totalBase / contenido);
+      if (unidadesInferidas > 1) {
+        const unidadesPorCaja = cantidad > 1 && unidadesInferidas % cantidad === 0
+          ? Math.round(unidadesInferidas / cantidad)
+          : unidadesInferidas;
+        sincronizarEmpaqueCompuesto(unidadesPorCaja, contenido);
+      }
+    }
+  }
+
+  function autocompletarPorNombre() {
+    const texto = nombreInput?.value?.trim() || '';
+    if (!texto) return;
+
+    if (esBebidaCerveza(texto)) {
+      if (presentacionInput && (!presentacionInput.value || presentacionInput.value === 'unidad')) {
+        presentacionInput.value = 'caja';
+      }
+      if (contenidoInput && (!contenidoInput.value || parseFloat(contenidoInput.value) <= 0)) {
+        contenidoInput.value = 222;
+      }
+      if (retornableInput) {
+        retornableInput.checked = true;
+      }
+      let unidadesPorCaja = getUnidadesPorCaja();
+      if (unidadesPorCaja <= 1) {
+        unidadesPorCaja = 36;
+        setUnidadesPorCaja(36);
+      }
+      const contenido = parseLocaleFloat(contenidoInput?.value) || 222;
+      sincronizarEmpaqueCompuesto(unidadesPorCaja, contenido);
+    }
+  }
+
+  if (nombreInput) {
+    ['input', 'change', 'blur'].forEach(ev => nombreInput.addEventListener(ev, autocompletarPorNombre));
+  }
   if (cantidadInput) {
     ['input', 'keyup', 'change', 'blur'].forEach(ev => cantidadInput.addEventListener(ev, recalcularDesdeCantidad));
   }
@@ -439,6 +527,9 @@ function activarListenersEdicionInline(fila, esNueva) {
   }
   if (contenidoInput) {
     ['input', 'keyup', 'change', 'blur'].forEach(ev => contenidoInput.addEventListener(ev, recalcularDesdeUnidades));
+  }
+  if (totalBaseInput) {
+    ['input', 'change', 'blur'].forEach(ev => totalBaseInput.addEventListener(ev, recalcularDesdeTotalBase));
   }
   if (presentacionInput) {
     ['input', 'keyup', 'change', 'blur'].forEach(ev => presentacionInput.addEventListener(ev, recalcularDesdeCantidad));
@@ -467,7 +558,6 @@ async function guardarNuevaFila(btn) {
   const pesoPorPresentacion = parseFloat(fila.querySelector('[data-field="presentacion_medida"] input.input-total-base')?.value.replace(/\./g, '').replace(',', '.')) || 0;
   const unidadPeso = fila.querySelector('[data-field="presentacion_medida"] select.select-unidad-base')?.value || 'u';
   const stockMinimoInput = fila.querySelector('[data-field="stock_minimo"] input');
-  const esEmpaqueCompuestoInput = fila.querySelector('[data-field="stock_minimo"]')?.getAttribute('data-es-empaque-compuesto') === '1';
   let stockMinimoUnidades = parseFloat(stockMinimoInput?.value) || 0;
   const costoPromedio = parseFloat(fila.querySelector('[data-field="costo_promedio"] input')?.value) || 0;
   const precioVentaUSD = parseFloat(fila.querySelector('[data-field="precio_venta_usd"] input')?.value) || 0;
@@ -480,11 +570,16 @@ async function guardarNuevaFila(btn) {
 
   let unidadesPorEmpaque = unidadesPorCajaAttr;
   if (unidadesPorEmpaque <= 0 && cantidadPresentacion > 0 && unidadesTotalesIngresadas > 0) {
-    unidadesPorEmpaque = Math.round(unidadesTotalesIngresadas / cantidadPresentacion);
+    if (unidadesTotalesIngresadas % cantidadPresentacion === 0 && unidadesTotalesIngresadas > cantidadPresentacion) {
+      unidadesPorEmpaque = Math.round(unidadesTotalesIngresadas / cantidadPresentacion);
+    } else {
+      unidadesPorEmpaque = unidadesTotalesIngresadas;
+    }
   }
   if (unidadesPorEmpaque <= 0) {
     unidadesPorEmpaque = unidadesTotalesIngresadas > 0 ? unidadesTotalesIngresadas : 1;
   }
+  const esEmpaqueCompuestoInput = fila.querySelector('[data-field="stock_minimo"]')?.getAttribute('data-es-empaque-compuesto') === '1' || (unidadesPorEmpaque > 1 && contenidoMl > 0);
 
   if (!nombre) {
     showToast('El nombre del producto es obligatorio', true);
@@ -1485,7 +1580,6 @@ async function guardarEdicionFila(insumoId) {
   const pesoPorPresentacion = parseFloat(fila.querySelector('[data-field="presentacion_medida"] input.input-total-base')?.value.replace(/\./g, '').replace(',', '.')) || 0;
   const unidadPeso = fila.querySelector('[data-field="presentacion_medida"] select.select-unidad-base')?.value || 'u';
   const stockMinimoInput = fila.querySelector('[data-field="stock_minimo"] input');
-  const esEmpaqueCompuestoInput = fila.querySelector('[data-field="stock_minimo"]')?.getAttribute('data-es-empaque-compuesto') === '1';
   let stockMinimoUnidades = parseFloat(stockMinimoInput?.value) || 0;
   const costoPromedio = parseFloat(fila.querySelector('[data-field="costo_promedio"] input')?.value) || 0;
   const precioVentaUSD = parseFloat(fila.querySelector('[data-field="precio_venta_usd"] input')?.value) || 0;
@@ -1498,11 +1592,16 @@ async function guardarEdicionFila(insumoId) {
 
   let unidadesPorEmpaque = unidadesPorCajaAttr;
   if (unidadesPorEmpaque <= 0 && cantidadPresentacion > 0 && unidadesTotalesIngresadas > 0) {
-    unidadesPorEmpaque = Math.round(unidadesTotalesIngresadas / cantidadPresentacion);
+    if (unidadesTotalesIngresadas % cantidadPresentacion === 0 && unidadesTotalesIngresadas > cantidadPresentacion) {
+      unidadesPorEmpaque = Math.round(unidadesTotalesIngresadas / cantidadPresentacion);
+    } else {
+      unidadesPorEmpaque = unidadesTotalesIngresadas;
+    }
   }
   if (unidadesPorEmpaque <= 0) {
     unidadesPorEmpaque = unidadesTotalesIngresadas > 0 ? unidadesTotalesIngresadas : 1;
   }
+  const esEmpaqueCompuestoInput = fila.querySelector('[data-field="stock_minimo"]')?.getAttribute('data-es-empaque-compuesto') === '1' || (unidadesPorEmpaque > 1 && contenidoMl > 0);
 
   const empaqueMeta = fila.querySelector('[data-empaque-tipo]') || {};
   const empaqueTipoOriginal = empaqueMeta.getAttribute ? empaqueMeta.getAttribute('data-empaque-tipo') : 'UNITARIO';
