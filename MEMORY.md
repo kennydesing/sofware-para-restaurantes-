@@ -45,8 +45,11 @@ Memoria del proyecto entre sesiones. Máximo ~50 líneas.
 
 ## Próximos pasos
 - ✅ Verificación end-to-end de `/admin/` Inventario completada.
-- ✅ Configuración MCP GitHub (`.agents/mcp_config.json`, `mcp_config.json`, `.gitignore`, `GITHUB_BACKUP_MCP.md`) para respaldos.
+- ✅ Configuración MCP GitHub (`.agents/mcp_config.json`, `mcp_config.json`, `.gitignore`, `GITHUB_BACKUP_MCP.md`).
+- ✅ Respaldo en GitHub completado en https://github.com/kennydesing/sofware-para-restaurantes- (rama `main`).
 - Integración física con impresoras térmicas ESC/POS de comanda en cocina.
 - Reportes de ventas y movimientos de inventario exportables.
+
+
 
 
