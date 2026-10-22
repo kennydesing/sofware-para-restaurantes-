@@ -440,7 +440,6 @@ function activarListenersEdicionInline(fila, esNueva) {
   if (contenidoInput) {
     ['input', 'keyup', 'change', 'blur'].forEach(ev => contenidoInput.addEventListener(ev, recalcularDesdeUnidades));
   }
-  const presentacionInput = fila.querySelector('[data-field="cantidad_presentacion"] input.input-presentacion');
   if (presentacionInput) {
     ['input', 'keyup', 'change', 'blur'].forEach(ev => presentacionInput.addEventListener(ev, recalcularDesdeCantidad));
   }
