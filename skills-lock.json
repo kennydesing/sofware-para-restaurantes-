@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "skills": {
+    "SQLite Database Expert": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "skillPath": "skills/sqlite/SKILL.md",
+      "computedHash": "515e1971f145631025485c6dbf83c62bb7ee0fabc805d0e2bd07ac2aac7f24d8"
+    },
+    "backend-development": {
+      "source": "mrgoonie/claudekit-skills",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/backend-development/SKILL.md",
+      "computedHash": "dedbc6bb7afa2c16ac6b3451a435a198af0e5d3786b30a15d40910ba207fd6e3"
+    },
+    "css": {
+      "source": "mindrally/skills",
+      "sourceType": "github",
+      "skillPath": "css/SKILL.md",
+      "computedHash": "2a905a052180c68b1a9f0f5bdc56230a0e542a6395471ced4f516d577cd48f71"
+    },
+    "database-migration": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "skillPath": "plugins/framework-migration/skills/database-migration/SKILL.md",
+      "computedHash": "fad57306773041a544fe3487e84d3dfa953dbd5a8ecbce84c977484365c323c2"
+    },
+    "design-mobile-apps": {
+      "source": "designed-by-ai/skills",
+      "sourceType": "github",
+      "skillPath": "skills/design-mobile-apps/SKILL.md",
+      "computedHash": "30bfa26c39e384af50d5ca2a9da7c39e239ce822f5e3fd2a31e8e6b55d3679ac"
+    },
+    "find-skills": {
+      "source": "vercel-labs/skills",
+      "sourceType": "github",
+      "skillPath": "skills/find-skills/SKILL.md",
+      "computedHash": "b146008599c31057cef1c145774cea5d5afb30e8f43fa802e47a4b461419aaaf"
+    },
+    "framer-motion-animator": {
+      "source": "patricio0312rev/skills",
+      "sourceType": "github",
+      "skillPath": "frontend/framer-motion-animator/SKILL.md",
+      "computedHash": "22a8401fab0cdf32d5c153b98aba5e95435a479810896879535dc7ac3710efbe"
+    },
+    "frontend-design": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "skillPath": "skills/frontend-design/SKILL.md",
+      "computedHash": "106acf230014cbb43ca34e6410371321b56ca742f9ee0442e8ec05bf02eb0384"
+    },
+    "hexagonal-architecture": {
+      "source": "affaan-m/ecc",
+      "sourceType": "github",
+      "skillPath": "skills/hexagonal-architecture/SKILL.md",
+      "computedHash": "9bcc7b90143ab607eb6dbac67df028c9d8c7303e787395da5b2ef311f52e55eb"
+    },
+    "html": {
+      "source": "plannotator/effective-html",
+      "sourceType": "github",
+      "skillPath": "skills/html/SKILL.md",
+      "computedHash": "8deb96a6fb6092850eb82fcdb680a779d44d4848fbf920e7b9254befcb12c8e0"
+    },
+    "javascript-pro": {
+      "source": "jeffallan/claude-skills",
+      "sourceType": "github",
+      "skillPath": "skills/javascript-pro/SKILL.md",
+      "computedHash": "ac960782dce4f93092e48dd788663cc3ce05a0f141689be5023bf00d50a03700"
+    },
+    "motion-graphics": {
+      "source": "heygen-com/hyperframes",
+      "sourceType": "github",
+      "skillPath": "skills/motion-graphics/SKILL.md",
+      "computedHash": "73420963bea97e1008257c32f89b172486e87b87132ee4ebc83d21e1805ffd25"
+    },
+    "software-architecture-design": {
+      "source": "vasilyu1983/ai-agents-public",
+      "sourceType": "github",
+      "skillPath": "skills/universal/software-architecture-design/SKILL.md",
+      "computedHash": "e1d785b79261e432fb98f1cdb5e860b428bf15261b44fa70709a6c8805961077"
+    },
+    "software-engineer": {
+      "source": "siviter-xyz/dot-agent",
+      "sourceType": "github",
+      "skillPath": "skills/software-engineer/SKILL.md",
+      "computedHash": "b40477f5579cb9639d3ef6f06b99c5b336ab73f4c1662b161efcbcc3512a6bab"
+    },
+    "ui-ux-pro-max": {
+      "source": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/ui-ux-pro-max/SKILL.md",
+      "computedHash": "7ac62d931e52dbc7c309ed8ee067101969db2454709339b02daa583e80e98d5f"
+    },
+    "web-design-guidelines": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/web-design-guidelines/SKILL.md",
+      "computedHash": "f3bc47f890f42a44db1007ab390709ec368e4b8c089baee6b0007182236ac474"
+    }
+  }
+}

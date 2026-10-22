@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#1a1a2e">
+    <title>Menú - Mesa {{.MesaID}}</title>
+    <link rel="stylesheet" href="/static/client/menu.css">
+</head>
+<body>
+    <header class="menu-header">
+        <div class="header-left">
+            <span class="back-btn" onclick="window.location.href='/qr'">←</span>
+            <h1>Menú</h1>
+        </div>
+        <div class="header-right">
+            <span class="mesa-badge">Mesa {{.MesaID}}</span>
+            <button class="cart-btn" id="cart-btn" onclick="toggleCart()">
+                🛒 <span id="cart-count">0</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="menu-main">
+        <div class="categories" id="categories"></div>
+        <div class="dishes-grid" id="dishes-grid"></div>
+    </main>
+
+    <aside class="cart-slide" id="cart-slide">
+        <div class="cart-header">
+            <h2>Tu Pedido</h2>
+            <button class="close-cart" onclick="toggleCart()">✕</button>
+        </div>
+        <div class="cart-items" id="cart-items"></div>
+        <div class="cart-footer">
+            <div class="cart-total">
+                <span>Total</span>
+                <span id="cart-total">$0.00</span>
+            </div>
+            <button class="checkout-btn" id="checkout-btn" onclick="checkout()" disabled>
+                Confirmar Pedido
+            </button>
+        </div>
+    </aside>
+
+    <div class="overlay" id="overlay" onclick="toggleCart()"></div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="/static/client/menu.js"></script>
+</body>
+</html>

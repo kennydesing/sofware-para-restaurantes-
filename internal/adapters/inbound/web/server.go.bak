@@ -1,0 +1,61 @@
+package web
+
+import (
+	"embed"
+	"io/fs"
+	"net/http"
+
+	"pos-inventory/internal/core/ports"
+)
+
+//go:embed static/*
+var staticFS embed.FS
+
+type Server struct {
+	mux            http.ServeMux
+	inventario     ports.InventarioService
+	pedido         ports.PedidoService
+	insumoRepo     ports.InsumoRepository
+	movimientoRepo ports.MovimientoRepository
+	platoRepo      ports.PlatoRepository
+}
+
+func NewServer(
+	inventario ports.InventarioService,
+	pedido ports.PedidoService,
+	insumoRepo ports.InsumoRepository,
+	movimientoRepo ports.MovimientoRepository,
+	platoRepo ports.PlatoRepository,
+) *Server {
+	s := &Server{
+		inventario:     inventario,
+		pedido:         pedido,
+		insumoRepo:     insumoRepo,
+		movimientoRepo: movimientoRepo,
+		platoRepo:      platoRepo,
+	}
+	s.registerRoutes()
+	return s
+}
+
+func (s *Server) registerRoutes() {
+	staticDir, err := fs.Sub(staticFS, "static")
+	if err != nil {
+		panic("error al acceder a archivos estáticos: " + err.Error())
+	}
+
+	s.mux.Handle("/", http.FileServer(http.FS(staticDir)))
+
+	s.mux.HandleFunc("/api/insumos", s.handleInsumos)
+	s.mux.HandleFunc("/api/insumos/", s.handleInsumoByID)
+	s.mux.HandleFunc("/api/platos", s.handlePlatos)
+	s.mux.HandleFunc("/api/pedidos", s.handlePedidos)
+	s.mux.HandleFunc("/api/pedidos/", s.handlePedidoByID)
+	s.mux.HandleFunc("/api/compras", s.handleCompras)
+	s.mux.HandleFunc("/api/mermas", s.handleMermas)
+	s.mux.HandleFunc("/api/ajustes", s.handleAjustes)
+}
+
+func (s *Server) Start(addr string) error {
+	return http.ListenAndServe(addr, &s.mux)
+}

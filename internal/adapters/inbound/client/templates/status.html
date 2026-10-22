@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#1a1a2e">
+    <title>Estado del Pedido #{{.PedidoID}}</title>
+    <link rel="stylesheet" href="/static/client/status.css">
+</head>
+<body>
+    <header class="status-header">
+        <h1>Pedido #{{.PedidoID}}</h1>
+        <span class="mesa-badge">Mesa {{.MesaID}}</span>
+    </header>
+
+    <main class="status-main">
+        <div class="status-card">
+            <div class="status-icon" id="status-icon">⏳</div>
+            <h2 class="status-title" id="status-title">PENDIENTE</h2>
+            <p class="status-desc" id="status-desc">Tu pedido ha sido recibido y está en cola</p>
+            <div class="progress-bar">
+                <div class="progress-step active" data-step="1">
+                    <span class="step-circle">1</span>
+                    <span class="step-label">Recibido</span>
+                </div>
+                <div class="progress-line"></div>
+                <div class="progress-step" data-step="2">
+                    <span class="step-circle">2</span>
+                    <span class="step-label">En Cocina</span>
+                </div>
+                <div class="progress-line"></div>
+                <div class="progress-step" data-step="3">
+                    <span class="step-circle">3</span>
+                    <span class="step-label">Listo</span>
+                </div>
+                <div class="progress-line"></div>
+                <div class="progress-step" data-step="4">
+                    <span class="step-circle">4</span>
+                    <span class="step-label">Entregado</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="order-summary">
+            <h3>Resumen</h3>
+            <div class="summary-row">
+                <span>Total</span>
+                <span class="total-amount">${{.Total}}</span>
+            </div>
+            <div class="summary-row">
+                <span>Estado</span>
+                <span class="status-badge" id="status-badge">{{.Estado}}</span>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button class="btn-secondary" onclick="window.location.href='/?mesa={{.MesaID}}'">
+                Volver al Menú
+            </button>
+            <button class="btn-primary" onclick="window.location.href='/qr'">
+                Otras Mesas
+            </button>
+        </div>
+    </main>
+
+    <script src="/static/client/status.js"></script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KDS - Kitchen Display System</title>
+    <link rel="stylesheet" href="/static/kds/kds.css">
+</head>
+<body>
+    <header class="kds-header">
+        <h1>🍳 KDS - Cocina</h1>
+        <div class="kds-status" style="display:flex; align-items:center; gap:1rem;">
+            <span id="connection-status" class="status disconnected">Desconectado</span>
+            <span id="order-count">Órdenes: 0</span>
+            <form action="/logout" method="POST" style="margin:0; display:inline;">
+                <button type="submit" style="background:#ef4444; color:white; border:none; padding:5px 12px; border-radius:6px; cursor:pointer; font-weight:600; font-size:0.8rem;">Cerrar Sesión</button>
+            </form>
+        </div>
+    </header>
+
+    <main class="kds-board">
+        <section class="kanban-column" data-status="PENDIENTE">
+            <header class="column-header">
+                <h2>📋 PENDIENTE</h2>
+                <span class="column-count" id="count-PENDIENTE">0</span>
+            </header>
+            <div class="column-content" id="column-PENDIENTE"></div>
+        </section>
+
+        <section class="kanban-column" data-status="EN_COCINA">
+            <header class="column-header">
+                <h2>🔥 EN COCINA</h2>
+                <span class="column-count" id="count-EN_COCINA">0</span>
+            </header>
+            <div class="column-content" id="column-EN_COCINA"></div>
+        </section>
+
+        <section class="kanban-column" data-status="LISTO">
+            <header class="column-header">
+                <h2>✅ LISTO</h2>
+                <span class="column-count" id="count-LISTO">0</span>
+            </header>
+            <div class="column-content" id="column-LISTO"></div>
+        </section>
+    </main>
+
+    <script src="/static/kds/kds.js"></script>
+</body>
+</html>

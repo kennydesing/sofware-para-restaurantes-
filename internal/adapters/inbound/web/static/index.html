@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POS Core & Inventario — Restaurante</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <h1>🍔 POS Core &amp; Inventario</h1>
+            <p class="subtitle">Sistema de gestión por escandallo - Arquitectura Hexagonal</p>
+        </div>
+    </header>
+
+    <nav class="sidebar">
+        <ul class="nav-list">
+            <li><a href="#" class="nav-link active" data-view="dashboard">📊 Dashboard</a></li>
+            <li><a href="#" class="nav-link" data-view="insumos">📦 Inventario</a></li>
+            <li><a href="#" class="nav-link" data-view="platos">🍽️ Menú</a></li>
+            <li><a href="#" class="nav-link" data-view="pedidos">📋 Pedidos</a></li>
+            <li><a href="#" class="nav-link" data-view="movimientos">📚 Libro Diario</a></li>
+            <li><a href="/admin/" class="nav-link">⚙️ Admin</a></li>
+            <li><a href="/kds/" class="nav-link">🍳 Cocina</a></li>
+            <li><a href="/logout" class="nav-link">🚪 Cerrar sesión</a></li>
+        </ul>
+    </nav>
+
+    <main class="main-content">
+        <!-- Dashboard -->
+        <section id="view-dashboard" class="view active">
+            <h2>Dashboard</h2>
+            <div class="cards">
+                <div class="card"><span class="card-value" id="card-total-insumos">-</span><span class="card-label">Insumos</span></div>
+                <div class="card"><span class="card-value" id="card-total-platos">-</span><span class="card-label">Platos</span></div>
+                <div class="card"><span class="card-value" id="card-alerta-baja">-</span><span class="card-label">Bajo Stock</span></div>
+            </div>
+            <div class="table-container">
+                <h3>Stock Actual</h3>
+                <table class="data-table" id="table-stock">
+                    <thead><tr><th>Insumo</th><th>Unidad</th><th>Stock Actual</th><th>Mínimo</th><th>Costo Prom.</th><th>Estado</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Inventario -->
+        <section id="view-insumos" class="view">
+            <div class="section-header">
+                <h2>Inventario de Insumos</h2>
+                <button class="btn btn-primary" onclick="openModal('modal-nuevo-insumo')">➕ Nuevo Insumo</button>
+            </div>
+            <div class="table-container">
+                <table class="data-table" id="table-insumos">
+                    <thead><tr><th>ID</th><th>Nombre</th><th>Unidad</th><th>Stock</th><th>Mínimo</th><th>Costo Prom.</th><th>Acciones</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Menu -->
+        <section id="view-platos" class="view">
+            <h2>Menú de Platos</h2>
+            <div class="table-container">
+                <table class="data-table" id="table-platos">
+                    <thead><tr><th>ID</th><th>Nombre</th><th>Precio Venta</th><th>Activo</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Pedidos -->
+        <section id="view-pedidos" class="view">
+            <div class="section-header">
+                <h2>Crear Pedido (POS)</h2>
+            </div>
+            <form id="form-pedido" class="form-grid">
+                <div class="form-group">
+                    <label>Mesa</label>
+                    <input type="number" id="pedido-mesa" min="1" value="1" required>
+                </div>
+                <div class="form-group">
+                    <label>Plato</label>
+                    <select id="pedido-plato" required></select>
+                </div>
+                <div class="form-group">
+                    <label>Cantidad</label>
+                    <input type="number" id="pedido-cantidad" min="1" value="1" required>
+                </div>
+                <div class="form-group">
+                    <label>Acción</label>
+                    <button type="submit" class="btn btn-success">Crear Pedido</button>
+                </div>
+            </form>
+
+            <div class="section-header">
+                <h3>Pedidos Recientes</h3>
+            </div>
+            <div class="table-container">
+                <table class="data-table" id="table-pedidos-recientes">
+                    <thead><tr><th>Pedido</th><th>Mesa</th><th>Total</th><th>Estado</th><th>Acciones</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Movimientos -->
+        <section id="view-movimientos" class="view">
+            <div class="section-header">
+                <h2>Libro Diario de Auditoría</h2>
+                <div class="form-group-inline">
+                    <label for="mov-insumo-id">Insumo ID:</label>
+                    <input type="number" id="mov-insumo-id" min="1" value="1">
+                    <button class="btn btn-secondary" onclick="cargarMovimientos()">Consultar</button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table class="data-table" id="table-movimientos">
+                    <thead><tr><th>ID</th><th>Tipo</th><th>Cantidad</th><th>Costo Unit.</th><th>Referencia</th><th>Fecha</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modales -->
+    <div id="modal-nuevo-insumo" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('modal-nuevo-insumo')">&times;</span>
+            <h3>Nuevo Insumo</h3>
+            <form id="form-insumo" class="form">
+                <input type="text" id="insumo-nombre" placeholder="Nombre" required>
+                <select id="insumo-unidad" required>
+                    <option value="">Seleccionar unidad</option>
+                    <option value="g">Gramos (g)</option>
+                    <option value="ml">Mililitros (ml)</option>
+                    <option value="u">Unidades (u)</option>
+                </select>
+                <input type="number" id="insumo-stock-min" placeholder="Stock mínimo" min="0" step="0.01" value="0">
+                <button type="submit" class="btn btn-primary">Crear Insumo</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-editar-insumo" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('modal-editar-insumo')">&times;</span>
+            <h3>Editar Insumo</h3>
+            <form id="form-editar-insumo" class="form">
+                <input type="hidden" id="editar-insumo-id">
+                <input type="text" id="editar-insumo-nombre" placeholder="Nombre" required>
+                <select id="editar-insumo-unidad" required>
+                    <option value="">Seleccionar unidad</option>
+                    <option value="g">Gramos (g)</option>
+                    <option value="ml">Mililitros (ml)</option>
+                    <option value="u">Unidades (u)</option>
+                </select>
+                <input type="number" id="editar-insumo-stock-min" placeholder="Stock mínimo" min="0" step="0.01" value="0">
+                <button type="submit" class="btn btn-primary">Actualizar Insumo</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-compra" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('modal-compra')">&times;</span>
+            <h3>Registrar Compra</h3>
+            <form id="form-compra" class="form">
+                <input type="number" id="compra-insumo-id" placeholder="ID Insumo" required>
+                <input type="number" id="compra-cantidad" placeholder="Cantidad" step="0.01" required>
+                <input type="text" id="compra-unidad" placeholder="Unidad (kg, L, docena, g, ml, u)" required>
+                <input type="number" id="compra-costo" placeholder="Costo unitario" step="0.0001" required>
+                <input type="text" id="compra-referencia" placeholder="Referencia / Factura" required>
+                <button type="submit" class="btn btn-primary">Registrar Entrada</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-merma" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('modal-merma')">&times;</span>
+            <h3>Registrar Merma</h3>
+            <form id="form-merma" class="form">
+                <input type="number" id="merma-insumo-id" placeholder="ID Insumo" required>
+                <input type="number" id="merma-cantidad" placeholder="Cantidad" step="0.01" required>
+                <input type="text" id="merma-unidad" placeholder="Unidad (g, ml, u)" required>
+                <input type="text" id="merma-motivo" placeholder="Motivo de la merma" required>
+                <button type="submit" class="btn btn-warning">Registrar Merma</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

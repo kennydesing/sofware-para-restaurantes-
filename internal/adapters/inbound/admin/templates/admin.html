@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>POS Core — Panel de Administración Maestro</title>
+  <link rel="stylesheet" href="/static/admin/admin.css?v=14" />
+  {{if .CSRFToken}}<meta name="csrf-token" content="{{.CSRFToken}}">{{end}}
+</head>
+<body>
+  <!-- Header / Navbar -->
+  <header class="navbar">
+    <div class="navbar-brand">
+      <span class="icon">⚙️</span>
+      <span>POS CORE ADMIN</span>
+    </div>
+
+    <div id="bcv-rates-widget" style="display: flex; align-items: center; gap: 0.6rem; background: rgba(15, 23, 42, 0.7); padding: 4px 12px; border-radius: 8px; border: 1px solid rgba(148, 163, 184, 0.2); font-size: 0.82rem;">
+      <span style="color: #4ade80; font-weight: 600;" id="rate-usd-display">💵 $ 1 = Bs --</span>
+      <span style="color: #64748b;">|</span>
+      <span style="color: #60a5fa; font-weight: 600;" id="rate-eur-display">💶 € 1 = Bs --</span>
+      <button type="button" class="btn btn-sm btn-secondary" style="padding: 2px 7px; font-size: 0.72rem; margin-left: 4px;" onclick="sincronizarTasasBCV()" title="Sincronizar ahora con el BCV">🔄 Sincronizar BCV</button>
+      <button type="button" class="btn btn-sm btn-secondary" style="padding: 2px 7px; font-size: 0.72rem;" onclick="abrirModalTasaManual()" title="Ajuste manual de tasa">✏️</button>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <span class="admin-badge" id="user-role-badge">Admin</span>
+      <span id="user-name-display" style="font-size: 0.85rem; color: #cbd5e1; font-weight: 500;"></span>
+      <span id="current-time" style="font-size: 0.85rem; color: var(--text-muted);"></span>
+      <form action="/logout" method="POST" style="margin: 0; display: inline;">
+        <button type="submit" style="background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #fca5a5; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600;">Cerrar Sesión</button>
+      </form>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav class="nav-tabs">
+    <button class="tab-btn active" data-tab="dashboard">
+      <span>📊</span> Dashboard
+    </button>
+    <button class="tab-btn" data-tab="inventario">
+      <span>📦</span> Inventario & Compras
+    </button>
+    <button class="tab-btn" data-tab="menu">
+      <span>🍽️</span> Menú & Escandallos
+    </button>
+    <button class="tab-btn" data-tab="pedidos">
+      <span>📋</span> Historial Pedidos
+    </button>
+    <button class="tab-btn" data-tab="auditoria">
+      <span>📓</span> Libro Diario
+    </button>
+    <button class="tab-btn" data-tab="conteo">
+      <span>🔍</span> Conteo Físico
+    </button>
+    <button class="tab-btn" data-tab="usuarios" id="tab-btn-usuarios">
+      <span>👥</span> Gestión Usuarios
+    </button>
+  </nav>
+
+  <!-- Main Content Container -->
+  <main class="main-container">
+
+    <!-- Tab 1: Dashboard -->
+    <section id="tab-dashboard" class="tab-content active">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon icon-purple">📦</div>
+          <div class="stat-info">
+            <h4>Total Insumos</h4>
+            <div class="value" id="stat-total-insumos">0</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon icon-amber">⚠️</div>
+          <div class="stat-info">
+            <h4>Alertas Stock Bajo</h4>
+            <div class="value" id="stat-stock-bajo">0</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon icon-emerald">🍽️</div>
+          <div class="stat-info">
+            <h4>Platos Activos</h4>
+            <div class="value" id="stat-total-platos">0</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon icon-cyan">💰</div>
+          <div class="stat-info">
+            <h4>Ventas del Día</h4>
+            <div class="value" id="stat-total-ventas">Bs 0.00</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-header">
+        <h2 class="section-title">🚨 Estado Crítico de Inventario</h2>
+        <button class="btn btn-secondary btn-sm" onclick="cargarStats()">🔄 Actualizar</button>
+      </div>
+
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Insumo</th>
+              <th>Stock Actual</th>
+              <th>Stock Mínimo</th>
+              <th>Unidad</th>
+              <th>Nivel</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="tbl-critical-stock">
+            <tr><td colspan="7" style="text-align: center;">Cargando inventario...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Tab 2: Inventario & Compras -->
+    <section id="tab-inventario" class="tab-content">
+      <!-- Sub-navegación Superior del Módulo de Inventario -->
+      <div class="inventory-subnav-container">
+        <!-- Segmented Control Tabs (Pestañas Superiores) -->
+        <div class="segmented-control" role="tablist" aria-label="Secciones de Inventario">
+          <button type="button"
+                  class="subtab-btn active"
+                  data-subtab="inventario-principal"
+                  role="tab"
+                  aria-selected="true"
+                  aria-controls="panel-inventario-principal"
+                  onclick="cambiarSubtabInventario('inventario-principal')">
+            <span>📦</span>
+            <span>Inventario Principal</span>
+            <span id="badge-total-items" class="subtab-badge">0</span>
+          </button>
+
+          <button type="button"
+                  class="subtab-btn"
+                  data-subtab="mermas"
+                  role="tab"
+                  aria-selected="false"
+                  aria-controls="panel-mermas"
+                  onclick="cambiarSubtabInventario('mermas')">
+            <span>⚠️</span>
+            <span>Mermas (Pérdidas)</span>
+            <span id="badge-mermas-hoy" class="subtab-badge subtab-badge-rose">0</span>
+          </button>
+
+          <button type="button"
+                  class="subtab-btn"
+                  data-subtab="uso-personal"
+                  role="tab"
+                  aria-selected="false"
+                  aria-controls="panel-uso-personal"
+                  onclick="cambiarSubtabInventario('uso-personal')">
+            <span>👨‍🍳</span>
+            <span>Uso Personal</span>
+            <span id="badge-personal-hoy" class="subtab-badge subtab-badge-amber">0</span>
+          </button>
+        </div>
+
+        <!-- Botones de Acción Rápida Contextual -->
+        <div class="subtab-actions">
+          <div id="actions-inventario-principal" class="subtab-action-group">
+            <button class="btn btn-success" onclick="agregarFilaNuevaInsumo()">
+              <span>+</span> <span>Agregar Producto</span>
+            </button>
+            <button id="btn-toggle-sonido" class="btn btn-secondary btn-sm"
+                    onclick="toggleAlertaSonido()" title="Activar/Silenciar alerta sonora"
+                    style="font-size:1.1rem; padding:4px 10px;">🔔</button>
+          </div>
+
+          <div id="actions-mermas" class="subtab-action-group hidden">
+            <button class="btn btn-danger" onclick="agregarFilaNuevaMerma()">
+              <span>⚠️</span> <span>Registrar Merma</span>
+            </button>
+          </div>
+
+          <div id="actions-uso-personal" class="subtab-action-group hidden">
+            <button class="btn btn-primary" onclick="agregarFilaNuevaUsoPersonal()">
+              <span>🍽️</span> <span>Registrar Consumo Personal</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Banner para política de autoplay (Spec 004) -->
+      <div id="banner-autoplay" role="alert">
+        🔔 Hay ítems en stock crítico. Haz clic en cualquier parte para activar la alerta sonora.
+      </div>
+
+      <!-- Panel 1: Inventario Principal (8 Columnas Definitivas) -->
+      <div id="panel-inventario-principal" class="subtab-panel active" role="tabpanel">
+        <div class="table-responsive">
+          <table id="tabla-insumos-v2" class="table-insumos">
+            <thead>
+              <tr>
+                <th class="col-producto">Producto</th>
+                <th class="col-cantidad">Cantidad</th>
+                <th class="col-peso">Presentación / Medida</th>
+                <th class="col-stock-minimo">Mínimo Requerido</th>
+                <th class="col-costo">Costo Prod.</th>
+                <th class="col-venta">P. Venta</th>
+                <th class="col-margen">Margen</th>
+                <th class="col-ajustes">Ajustes</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-insumos">
+              <tr><td colspan="8" class="empty-state">Cargando insumos...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Panel 2: Mermas (2 Columnas Simplificadas) -->
+      <div id="panel-mermas" class="subtab-panel hidden" role="tabpanel">
+        <div class="mb-4 p-3 bg-rose-950/30 border border-rose-800/40 rounded-xl text-xs text-rose-200 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-base">⚠️</span>
+            <span><strong>Registro Exclusivo de Mermas:</strong> Las cantidades registradas se descuentan inmediatamente del inventario general y quedan asentadas en el Libro Diario de Auditoría.</span>
+          </div>
+          <div class="text-right font-mono" id="stat-resumen-mermas">Total Mermas Hoy: <strong>0.00</strong></div>
+        </div>
+
+        <div class="table-responsive">
+          <table id="tabla-mermas" class="table-mermas">
+            <thead>
+              <tr>
+                <th class="col-producto">1. Producto</th>
+                <th class="col-cantidad">2. Cantidad</th>
+                <th class="col-ajuste">Acción</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-mermas">
+              <tr><td colspan="3" class="empty-state">Cargando historial de mermas...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Panel 3: Uso Personal (2 Columnas Estructuradas) -->
+      <div id="panel-uso-personal" class="subtab-panel hidden" role="tabpanel">
+        <div class="mb-4 p-3 bg-amber-950/30 border border-amber-800/40 rounded-xl text-xs text-amber-200 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-base">👨‍🍳</span>
+            <span><strong>Alimentación del Personal:</strong> Registre los insumos consumidos para las comidas del equipo. El inventario principal se debitará automáticamente.</span>
+          </div>
+          <div class="text-right font-mono" id="stat-resumen-personal">Consumo Personal Hoy: <strong>0 ítems</strong></div>
+        </div>
+
+        <div class="table-responsive">
+          <table id="tabla-uso-personal" class="table-uso-personal">
+            <thead>
+              <tr>
+                <th class="col-producto">1. Producto</th>
+                <th class="col-cantidad">2. Cantidad y Peso</th>
+                <th class="col-ajuste">Acción</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-uso-personal">
+              <tr><td colspan="3" class="empty-state">Cargando historial de uso personal...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Tab 3: Menú & Escandallos -->
+    <section id="tab-menu" class="tab-content">
+      <div class="section-header">
+        <h2 class="section-title">🍽️ Fichas Técnicas & Escandallo de Platos</h2>
+        <button class="btn" onclick="abrirModalNuevoPlato()">+ Crear Plato con Escandallo</button>
+      </div>
+
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nombre del Plato</th>
+              <th>Precio Venta ($ / Bs)</th>
+              <th>Estado</th>
+              <th>Receta / Escandallo (Insumo · Req. Base · % Merma)</th>
+            </tr>
+          </thead>
+          <tbody id="tbl-platos">
+            <tr><td colspan="5" style="text-align: center;">Cargando platos...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Tab 4: Historial de Pedidos -->
+    <section id="tab-pedidos" class="tab-content">
+      <div class="section-header">
+        <h2 class="section-title">📋 Comandas POS & Pedidos</h2>
+        <button class="btn btn-secondary btn-sm" onclick="cargarPedidos()">🔄 Actualizar</button>
+      </div>
+
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>ID Pedido</th>
+              <th>Mesa</th>
+              <th>Estado</th>
+              <th>Detalles (Platos)</th>
+              <th>Monto Total</th>
+              <th>Fecha / Hora</th>
+            </tr>
+          </thead>
+          <tbody id="tbl-pedidos">
+            <tr><td colspan="6" style="text-align: center;">Cargando pedidos...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Tab 5: Libro Diario -->
+    <section id="tab-auditoria" class="tab-content">
+      <div class="section-header">
+        <h2 class="section-title">📓 Libro Diario de Auditoría de Inventario</h2>
+        <button class="btn btn-secondary btn-sm" onclick="cargarAuditoria()">🔄 Actualizar</button>
+      </div>
+
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>ID Mov.</th>
+              <th>Insumo ID</th>
+              <th>Tipo Movimiento</th>
+              <th>Cantidad (Base)</th>
+              <th>Costo Unit.</th>
+              <th>Referencia / Motivo</th>
+              <th>Fecha / Hora</th>
+            </tr>
+          </thead>
+          <tbody id="tbl-auditoria">
+            <tr><td colspan="7" style="text-align: center;">Cargando auditoría...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Tab 6: Conteo Físico -->
+    <section id="tab-conteo" class="tab-content">
+      <div class="section-header">
+        <h2 class="section-title">🔍 Conteo Físico vs Inventario Teórico</h2>
+      </div>
+
+      <div style="background: var(--bg-card); padding: 1.5rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); max-width: 600px; margin-bottom: 2rem;">
+        <form id="form-conteo" onsubmit="auditarStockFisico(event)">
+          <div class="form-group">
+            <label>Seleccionar Insumo:</label>
+            <select id="conteo-insumo-id" class="form-control" required></select>
+          </div>
+          <div class="form-group">
+            <label>Conteo Físico Real Obtendo (en Unidad Base g/ml/u):</label>
+            <input type="number" step="0.01" id="conteo-fisico-cant" class="form-control" placeholder="Ej: 1500.0" required />
+          </div>
+          <button type="submit" class="btn btn-success" style="width: 100%;">Comparar Auditoría</button>
+        </form>
+      </div>
+
+      <div id="res-auditoria-card" style="display: none; background: var(--bg-card); border: 1px solid var(--primary); padding: 1.5rem; border-radius: var(--radius-md); max-width: 600px;">
+        <h3 style="margin-bottom: 1rem; color: #a5b4fc;">📊 Resultado de Auditoría de Stock</h3>
+        <div id="auditoria-detalles"></div>
+      </div>
+    </section>
+
+    <!-- Tab 7: Usuarios & RBAC -->
+    <section id="tab-usuarios" class="tab-content">
+      <div class="section-header">
+        <h2 class="section-title">👥 Gestión de Usuarios y Control de Acceso (RBAC)</h2>
+        <button class="btn btn-primary" onclick="abrirModalUsuario()">+ Nuevo Usuario</button>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nombre</th>
+              <th>Email</th>
+              <th>Rol</th>
+              <th>Estado</th>
+              <th>Fecha Creación</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-usuarios">
+            <tr><td colspan="7" style="text-align:center;">Cargando usuarios...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Modales -->
+
+  <!-- Modal Nuevo Usuario -->
+  <div id="modal-nuevo-usuario" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">👥 Crear Nuevo Usuario Operador</div>
+        <button class="close-btn" onclick="cerrarModal('modal-nuevo-usuario')">&times;</button>
+      </div>
+      <form onsubmit="guardarNuevoUsuario(event)">
+        <div class="form-group">
+          <label>Nombre Completo:</label>
+          <input type="text" id="usr-nombre" class="form-control" placeholder="Ej: Carlos Gómez" required />
+        </div>
+        <div class="form-group">
+          <label>Correo Electrónico:</label>
+          <input type="email" id="usr-email" class="form-control" placeholder="carlos@restaurante.com" required />
+        </div>
+        <div class="form-group">
+          <label>Contraseña (mínimo 8 car., 1 mayúscula, 1 número):</label>
+          <input type="password" id="usr-password" class="form-control" placeholder="••••••••" required />
+        </div>
+        <div class="form-group">
+          <label>Rol Asignado:</label>
+          <select id="usr-rol" class="form-control" required>
+            <option value="mesero">Mesero (Toma de pedidos en mesa)</option>
+            <option value="cocinero">Cocinero (KDS Cocina)</option>
+            <option value="cajero">Cajero (Cobros y pedidos)</option>
+            <option value="gerente">Gerente (Operaciones &amp; Stock)</option>
+            <option value="admin">Administrador (Control total)</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="cerrarModal('modal-nuevo-usuario')">Cancelar</button>
+          <button type="submit" class="btn">Crear Usuario</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Nuevo Plato con Escandallo -->
+  <div id="modal-nuevo-plato" class="modal-overlay">
+    <div class="modal" style="max-width: 650px;">
+      <div class="modal-header">
+        <div class="modal-title">🍽️ Crear Nuevo Plato & Escandallo</div>
+        <button class="close-btn" onclick="cerrarModal('modal-nuevo-plato')">&times;</button>
+      </div>
+      <form onsubmit="guardarNuevoPlato(event)">
+        <div class="form-group">
+          <label>Nombre del Plato:</label>
+          <input type="text" id="plato-nombre" class="form-control" placeholder="Ej: Hamburguesa Especial" required />
+        </div>
+        <div class="form-group">
+          <label>Precio de Venta ($ USD):</label>
+          <input type="number" step="0.25" id="plato-precio" class="form-control" placeholder="Ej: 8.50" required />
+        </div>
+
+        <h4 style="margin: 1rem 0 0.5rem; color: #a5b4fc;">Ficha Técnica / Ingredientes Requeridos:</h4>
+        <div id="receta-items-container">
+          <!-- Item dinámico -->
+        </div>
+
+        <button type="button" class="btn btn-secondary btn-sm" style="margin-top: 0.5rem;" onclick="agregarFilaReceta()">+ Agregar Ingrediente</button>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="cerrarModal('modal-nuevo-plato')">Cancelar</button>
+          <button type="submit" class="btn">Guardar Plato</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Ajuste Manual de Tasa -->
+  <div id="modal-tasa-manual" class="modal-overlay">
+    <div class="modal" style="max-width: 440px;">
+      <div class="modal-header">
+        <div class="modal-title">💵 Ajuste Manual de Tasa Oficial</div>
+        <button class="close-btn" onclick="cerrarModal('modal-tasa-manual')">&times;</button>
+      </div>
+      <form onsubmit="guardarTasaManual(event)">
+        <div class="form-group">
+          <label>Moneda:</label>
+          <select id="manual-tasa-moneda" class="form-control" required>
+            <option value="USD">Dólar Estadounidense (USD)</option>
+            <option value="EUR">Euro (EUR)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Tasa de Cambio en Bolívares (Bs por cada $ o €):</label>
+          <input type="number" step="0.01" id="manual-tasa-valor" class="form-control" placeholder="Ej: 885.50" required />
+        </div>
+        <div style="font-size: 0.78rem; color: #94a3b8; margin-bottom: 1rem; line-height: 1.4;">
+          💡 <strong>Respaldo Offline:</strong> Si no hay conexión a internet o deseas fijar una tasa interna temporal, puedes modificarla aquí. Podrás volver a sincronizar automáticamente con el BCV en cualquier momento.
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="cerrarModal('modal-tasa-manual')">Cancelar</button>
+          <button type="submit" class="btn">Guardar Tasa</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Contenedor de Toasts -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <script src="/static/admin/admin.js?v=14"></script>
+</body>
+</html>
