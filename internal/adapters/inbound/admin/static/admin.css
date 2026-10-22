@@ -1334,13 +1334,22 @@ td.td-input .input-unidad-pair input.input-presentacion {
 
 .empaque-config-inline .input-triple {
     display: grid;
-    grid-template-columns: 1fr 1fr auto;
+    grid-template-columns: 1fr 1.35fr auto;
     gap: 0.35rem;
     align-items: center;
 }
 
+.empaque-config-inline .select-unidad-contenido {
+    width: auto !important;
+    min-width: 48px !important;
+    padding: 0.35rem 0.2rem !important;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+}
+
 .empaque-config-inline .input-triple input {
-    min-width: 55px;
+    min-width: 45px;
     text-align: right;
 }
 
