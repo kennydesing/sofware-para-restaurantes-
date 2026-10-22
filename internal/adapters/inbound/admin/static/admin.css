@@ -1319,6 +1319,19 @@ td.td-input .input-unidad-pair input.input-presentacion {
     letter-spacing: 0.2px;
 }
 
+.empaque-total-unidades {
+    font-size: 0.78rem;
+    color: var(--accent);
+    text-align: center;
+    margin-top: 4px;
+    font-weight: 500;
+}
+
+.empaque-total-unidades .total-unidades-valor {
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
 .empaque-config-inline .input-triple {
     display: grid;
     grid-template-columns: 1fr 1fr auto;

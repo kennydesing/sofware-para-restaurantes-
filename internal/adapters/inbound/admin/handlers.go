@@ -189,16 +189,10 @@ func (s *Server) handleInsumosAPI(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		stockMinimoBase := req.StockMinimo
-		if req.UnidadesPorEmpaque > 1 && req.ContenidoMlPorUnidad > 0 {
-			// El frontend envía el mínimo requerido en unidades de consumo; convertir a ml.
-			stockMinimoBase = req.StockMinimo * req.ContenidoMlPorUnidad
-		}
-
 		insumo := &domain.Insumo{
 			Nombre:                      req.Nombre,
 			UnidadBase:                  req.UnidadBase,
-			StockMinimo:                 stockMinimoBase,
+			StockMinimo:                 req.StockMinimo,
 			Stock:                       0,
 			PrecioVentaUSD:              req.PrecioVentaUSD,
 			PresentacionNombre:          req.PresentacionNombre,
@@ -662,14 +656,9 @@ func (s *Server) handleInsumoByIDAPI(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		stockMinimoBase := req.StockMinimo
-		if req.UnidadesPorEmpaque > 1 && req.ContenidoMlPorUnidad > 0 {
-			stockMinimoBase = req.StockMinimo * req.ContenidoMlPorUnidad
-		}
-
 		actual.Nombre = req.Nombre
 		actual.UnidadBase = req.UnidadBase
-		actual.StockMinimo = stockMinimoBase
+		actual.StockMinimo = req.StockMinimo
 		actual.Stock = req.Stock
 		actual.CostoPromedio = req.CostoPromedio
 		actual.PrecioVentaUSD = req.PrecioVentaUSD

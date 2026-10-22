@@ -98,11 +98,21 @@ func main() {
 	// Servicios de Autenticación y Auditoría
 	authService := services.NewAuthService(usuarioRepo, sesionRepo, auditoriaRepo)
 
-	err = sqlite.SeedData(ctx, db, inventarioService, insumoRepo, platoRepo, recetaRepo)
-	if err != nil {
-		log.Fatalf("❌ Error en seeding de datos: %v", err)
+	// Solo cargar datos de demostración si la base de datos está vacía.
+	// Así los productos eliminados por el usuario no reaparecen al reiniciar.
+	var existingCount int
+	if err := db.QueryRowContext(ctx, "SELECT COUNT(*) FROM insumos").Scan(&existingCount); err != nil {
+		log.Fatalf("❌ Error verificando datos existentes: %v", err)
 	}
-	fmt.Println("✅ Datos de demostración de catálogo e inventario cargados.")
+	if existingCount == 0 {
+		err = sqlite.SeedData(ctx, db, inventarioService, insumoRepo, platoRepo, recetaRepo)
+		if err != nil {
+			log.Fatalf("❌ Error en seeding de datos: %v", err)
+		}
+		fmt.Println("✅ Datos de demostración de catálogo e inventario cargados.")
+	} else {
+		fmt.Println("✅ Base de datos con datos existentes; seeding de catálogo omitido para preservar eliminaciones.")
+	}
 
 	// Seeder de usuarios y administradores iniciales (TAREA-17)
 	if err := sqlite.SeedAuth(ctx, authService); err != nil {
